@@ -1,28 +1,14 @@
 [
   {
     "number": "1",
-    "schedule": [
-      {
-        "day": "Monday",
-        "name": "leon",
-        "specialty": "qasdasd"
-      },
-      {
-        "day": "Monday",
-        "name": "fredi Leonid",
-        "specialty": "גכגכגכ"
-      }
-    ]
+    "schedule": []
   },
   {
     "number": "2",
-    "schedule": [
-      {
-        "day": "Monday",
-        "time": "9:00",
-        "name": "slava",
-        "specialty": "slava"
-      }
-    ]
+    "schedule": []
+  },
+  {
+    "number": "3",
+    "schedule": []
   }
 ]

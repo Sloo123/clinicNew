@@ -15,6 +15,7 @@ function App() {
             <li>
               <Link to="/rooms">Rooms Information</Link>
             </li>
+            <li></li>
           </ul>
         </nav>
 
