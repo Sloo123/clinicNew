@@ -1,0 +1,28 @@
+[
+  {
+    "number": "1",
+    "schedule": [
+      {
+        "day": "Monday",
+        "name": "leon",
+        "specialty": "qasdasd"
+      },
+      {
+        "day": "Monday",
+        "name": "fredi Leonid",
+        "specialty": "גכגכגכ"
+      }
+    ]
+  },
+  {
+    "number": "2",
+    "schedule": [
+      {
+        "day": "Monday",
+        "time": "9:00",
+        "name": "slava",
+        "specialty": "slava"
+      }
+    ]
+  }
+]

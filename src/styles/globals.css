@@ -1,0 +1,373 @@
+:root {
+  --primary-color: #4a90e2;
+  --secondary-color: #f5a623;
+  --background-color: #f7f9fc;
+  --text-color: #333333;
+  --border-color: #e0e0e0;
+  --success-color: #28a745;
+  --danger-color: #dc3545;
+}
+
+body {
+  font-family: 'Roboto', Arial, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.cms-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.cms-header {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.cms-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.cms-section-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #343a40;
+  margin-bottom: 20px;
+}
+
+.cms-form {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.cms-form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.cms-form-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.cms-form-field label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #495057;
+}
+
+.cms-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.cms-time-field {
+  flex: 2;
+}
+
+.cms-time-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cms-custom-time-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.cms-custom-time-input {
+  flex: 1;
+}
+
+.cms-add-doctor-button {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cms-add-doctor-button:hover {
+  background-color: #0056b3;
+}
+
+.cms-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.cms-button {
+  padding: 12px 20px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.cms-button:hover {
+  background-color: #3a7bc8;
+}
+
+.cms-doctor-card {
+  background-color: #f1f3f5;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.cms-doctor-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.cms-doctor-info {
+  display: flex;
+  align-items: center;
+  background-color: var(--success-color);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.cms-remove-button {
+  background-color: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  margin-right: 5px;
+}
+
+.cms-remove-button:hover {
+  background-color: #bd2130;
+}
+
+.cms-doctor-schedule {
+  list-style-type: none;
+  padding: 0;
+}
+
+.cms-doctor-schedule li {
+  background-color: #e9ecef;
+  margin-bottom: 5px;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.cms-schedule-cell {
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  vertical-align: top;
+  width: 14.28%; /* 100% / 7 days */
+}
+
+.cms-schedule-container {
+  overflow-x: auto;
+}
+
+.cms-schedule-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.cms-schedule-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.cms-schedule-cell {
+  border: 1px solid var(--border-color);
+  padding: 10px;
+  vertical-align: top;
+}
+
+
+.cms-time-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cms-time-input label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+
+.cms-time-slot {
+  padding: 6px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #e9ecef;
+  display: flex;
+  flex-direction: column;
+}
+
+.cms-time {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.cms-occupied-slot {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.cms-alert {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 80%;
+  width: 400px;
+}
+
+@media (max-width: 768px) {
+  .cms-form {
+    grid-template-columns: 1fr;
+  }
+
+  .cms-doctor-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cms-remove-button {
+    margin-top: 10px;
+  }
+}
+
+/* Add these new styles to your existing globals.css file */
+
+.cms-autocomplete {
+  position: relative;
+}
+
+.cms-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.cms-suggestions li {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cms-suggestions li:hover {
+  background-color: var(--background-color);
+}
+
+/* Rest of your existing styles */
+
+/* Add these styles to your existing globals.css */
+
+.rooms-container {
+max-width: 1200px;
+margin: 0 auto;
+padding: 20px;
+}
+
+.rooms-header {
+font-size: 32px;
+color: var(--primary-color);
+text-align: center;
+margin-bottom: 30px;
+}
+
+.room-card {
+background-color: white;
+border-radius: 8px;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+margin-bottom: 30px;
+padding: 20px;
+}
+
+.room-title {
+font-size: 24px;
+color: var(--secondary-color);
+margin-bottom: 20px;
+}
+
+.room-schedule {
+width: 100%;
+border-collapse: collapse;
+}
+
+.room-schedule th,
+.room-schedule td {
+border: 1px solid var(--border-color);
+padding: 10px;
+text-align: center;
+}
+
+.room-schedule th {
+background-color: var(--primary-color);
+color: white;
+}
+
+.room-schedule td:first-child {
+font-weight: bold;
+background-color: #f1f3f5;
+}
