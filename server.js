@@ -91,8 +91,8 @@ app.get('/api/doctors', async (req, res) => {
 app.get('/api/room/:roomNumber', async (req, res) => {
   const { roomNumber } = req.params;
   const currentTime = new Date();
-  const currentDay = currentTime.toLocaleString('en-US', { weekday: 'long' });
-  const currentTimeString = currentTime.toTimeString().split(' ')[0];
+  const currentDay = currentTime.toLocaleString('en-US', { weekday: 'long' }).toLowerCase();
+  const currentTimeString = currentTime.toTimeString().slice(0, 5); // HH:MM format
 
   try {
     // Ensure the rooms file exists
@@ -100,49 +100,98 @@ app.get('/api/room/:roomNumber', async (req, res) => {
     const schedulesData = await fs.readFile(ROOMS_FILE, 'utf8');
     const schedules = JSON.parse(schedulesData);
 
-    const schedule = schedules.find(sch =>
-      sch.number == roomNumber &&
-      sch.schedule.some(app =>
-        app.day === currentDay &&
-        (
-          (app.fromTime <= currentTimeString && app.toTime > currentTimeString) ||
-          (app.toTime === "00:00" && currentTimeString >= app.fromTime)
-        )
-      )
+    const room = schedules.find(sch => sch.number == roomNumber);
+
+    if (!room) {
+      return res.status(404).json({ error: `Room ${roomNumber} not found` });
+    }
+
+    // Function to get the next day
+    const getNextDay = (day) => {
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const currentIndex = days.indexOf(day);
+      return days[(currentIndex + 1) % 7];
+    };
+
+    // Function to find the next appointment
+    const findNextAppointment = (schedule, startDay, startTime) => {
+      let checkDay = startDay;
+      let checkTime = startTime;
+      
+      for (let i = 0; i < 7; i++) { // Check for the next 7 days
+        const todayAppointments = schedule.filter(app => app.day.toLowerCase() === checkDay)
+          .sort((a, b) => a.fromTime.localeCompare(b.fromTime));
+
+        for (const app of todayAppointments) {
+          if (checkDay === startDay && app.fromTime <= checkTime) continue;
+          return { ...app, isUpcoming: true };
+        }
+
+        checkDay = getNextDay(checkDay);
+        checkTime = "00:00";
+      }
+      
+      return null;
+    };
+
+    const currentAppointment = room.schedule.find(app => {
+      const appDay = app.day.toLowerCase();
+      if (appDay !== currentDay) return false;
+
+      const fromTime = app.fromTime;
+      const toTime = app.toTime === "00:00" ? "24:00" : app.toTime;
+
+      return currentTimeString >= fromTime && currentTimeString < toTime;
+    });
+
+    let appointmentToReturn = currentAppointment;
+
+    if (!appointmentToReturn) {
+      appointmentToReturn = findNextAppointment(room.schedule, currentDay, currentTimeString);
+      if (!appointmentToReturn) {
+        return res.status(404).json({ error: `No current or upcoming appointments found for room ${roomNumber}` });
+      }
+    }
+
+    // Ensure the doctors file exists
+    await ensureFile(DOCTORS_FILE);
+    const doctorsData = await fs.readFile(DOCTORS_FILE, 'utf8');
+    const doctors = JSON.parse(doctorsData);
+
+    const doctor = doctors.find(doc => 
+      doc.name === appointmentToReturn.name && 
+      doc.specialty === appointmentToReturn.specialty
     );
 
-    if (schedule) {
-      const currentAppointment = schedule.schedule.find(app =>
-        app.day === currentDay &&
-        (
-          (app.fromTime <= currentTimeString && app.toTime > currentTimeString) ||
-          (app.toTime === "00:00" && currentTimeString >= app.fromTime)
-        )
-      );
-
-      // Ensure the doctors file exists
-      await ensureFile(DOCTORS_FILE);
-      const doctorsData = await fs.readFile(DOCTORS_FILE, 'utf8');
-      const doctors = JSON.parse(doctorsData);
-
-      const doctor = doctors.find(doc => doc.name === currentAppointment.name && doc.specialty === currentAppointment.specialty);
-
-      if (doctor) {
-        res.json({
-          name: doctor.name,
-          specialty: doctor.specialty,
-          fromTime: currentAppointment.fromTime,
-          toTime: currentAppointment.toTime
-        });
-      } else {
-        res.status(404).json({ error: 'Doctor not found for this schedule' });
-      }
+    if (doctor) {
+      res.json({
+        room: roomNumber,
+        name: doctor.name,
+        specialty: doctor.specialty,
+        fromTime: appointmentToReturn.fromTime,
+        toTime: appointmentToReturn.toTime,
+        day: appointmentToReturn.day,
+        isUpcoming: appointmentToReturn.isUpcoming || false
+      });
     } else {
-      res.status(404).json({ error: 'No schedule found for room ' + roomNumber });
+      res.status(404).json({ 
+        error: 'Doctor not found for this schedule',
+        appointment: {
+          name: appointmentToReturn.name,
+          specialty: appointmentToReturn.specialty,
+          fromTime: appointmentToReturn.fromTime,
+          toTime: appointmentToReturn.toTime,
+          day: appointmentToReturn.day,
+          isUpcoming: appointmentToReturn.isUpcoming || false
+        }
+      });
     }
   } catch (error) {
     console.error('Error fetching schedule:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message 
+    });
   }
 });
 // Endpoint to add a new doctor
