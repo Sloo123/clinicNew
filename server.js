@@ -4,6 +4,9 @@ const path = require('path');
 const cors = require('cors');
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const app = express();
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid'); 
+
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
@@ -11,7 +14,10 @@ app.use(express.json());
 
 const DOCTORS_FILE = path.join(__dirname, 'doctors.json');
 const ROOMS_FILE = path.join(__dirname, 'rooms.json');
-
+const SECRET_KEY = 'secret-key';
+const users = [
+  { id: 1, username: 'admin', password: 'admin' }
+];
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
   next();
@@ -30,7 +36,36 @@ async function ensureFile(filePath) {
     }
   }
 }
+// Login endpoint
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  const user = users.find(u => u.username === username && u.password === password);
+  
+  if (user) {
+    const token = jwt.sign({ id: user.id, username: user.username }, SECRET_KEY, { expiresIn: '1h' });
+    res.json({ token });
+  } else {
+    res.status(401).json({ error: 'Invalid username or password' });
+  }
+});
 
+// Middleware to verify token
+const verifyToken = (req, res, next) => {
+  const token = req.headers['authorization'];
+  
+  if (!token) {
+    return res.status(403).json({ error: 'No token provided' });
+  }
+  
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    req.userId = decoded.id;
+    next();
+  });
+};
 // Endpoint to get all doctors
 app.get('/api/doctors', async (req, res) => {
   try {
@@ -52,7 +87,64 @@ app.get('/api/doctors', async (req, res) => {
     }
   }
 });
+// Get a doctor by room number
+app.get('/api/room/:roomNumber', async (req, res) => {
+  const { roomNumber } = req.params;
+  const currentTime = new Date();
+  const currentDay = currentTime.toLocaleString('en-US', { weekday: 'long' });
+  const currentTimeString = currentTime.toTimeString().split(' ')[0];
 
+  try {
+    // Ensure the rooms file exists
+    await ensureFile(ROOMS_FILE);
+    const schedulesData = await fs.readFile(ROOMS_FILE, 'utf8');
+    const schedules = JSON.parse(schedulesData);
+
+    const schedule = schedules.find(sch =>
+      sch.number == roomNumber &&
+      sch.schedule.some(app =>
+        app.day === currentDay &&
+        (
+          (app.fromTime <= currentTimeString && app.toTime > currentTimeString) ||
+          (app.toTime === "00:00" && currentTimeString >= app.fromTime)
+        )
+      )
+    );
+
+    if (schedule) {
+      const currentAppointment = schedule.schedule.find(app =>
+        app.day === currentDay &&
+        (
+          (app.fromTime <= currentTimeString && app.toTime > currentTimeString) ||
+          (app.toTime === "00:00" && currentTimeString >= app.fromTime)
+        )
+      );
+
+      // Ensure the doctors file exists
+      await ensureFile(DOCTORS_FILE);
+      const doctorsData = await fs.readFile(DOCTORS_FILE, 'utf8');
+      const doctors = JSON.parse(doctorsData);
+
+      const doctor = doctors.find(doc => doc.name === currentAppointment.name && doc.specialty === currentAppointment.specialty);
+
+      if (doctor) {
+        res.json({
+          name: doctor.name,
+          specialty: doctor.specialty,
+          fromTime: currentAppointment.fromTime,
+          toTime: currentAppointment.toTime
+        });
+      } else {
+        res.status(404).json({ error: 'Doctor not found for this schedule' });
+      }
+    } else {
+      res.status(404).json({ error: 'No schedule found for room ' + roomNumber });
+    }
+  } catch (error) {
+    console.error('Error fetching schedule:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 // Endpoint to add a new doctor
 app.post('/api/doctors', async (req, res) => {
   try {
@@ -62,7 +154,8 @@ app.post('/api/doctors', async (req, res) => {
     const doctors = JSON.parse(data);
 
     if (!doctors.some(d => d.name === name && d.specialty === specialty)) {
-      doctors.push({ name, specialty });
+      const id = uuidv4();
+      doctors.push({ id, name, specialty });
       await fs.writeFile(DOCTORS_FILE, JSON.stringify(doctors, null, 2));
     }
 
@@ -224,6 +317,6 @@ app.post('/api/rooms', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Server is running on port ${PORT}`);
 });

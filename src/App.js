@@ -2,26 +2,17 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 import ClinicManagementSystem from './components/ClinicManagementSystem';
 import RoomsPage from './components/RoomsPage';
+import DoctorCard from './components/DoctorCard';
 
 function App() {
   return (
     <Router>
       <div className="App">
-        <nav>
-          <ul>
-            <li>
-              <Link to="/">Management System</Link>
-            </li>
-            <li>
-              <Link to="/rooms">Rooms Information</Link>
-            </li>
-            <li></li>
-          </ul>
-        </nav>
 
         <Routes>
           <Route path="/" element={<ClinicManagementSystem />} />
           <Route path="/rooms" element={<RoomsPage />} />
+          <Route path="/room/:roomNumber" element={<DoctorCard />} />
         </Routes>
       </div>
     </Router>

@@ -1,7 +1,15 @@
 [
   {
     "number": "1",
-    "schedule": []
+    "schedule": [
+      {
+        "day": "Monday",
+        "fromTime": "04:11",
+        "toTime": "17:11",
+        "name": "fghfdhfcgdf",
+        "specialty": "gfhfghdfgfd"
+      }
+    ]
   },
   {
     "number": "2",
@@ -9,6 +17,61 @@
   },
   {
     "number": "3",
+    "schedule": [
+      {
+        "day": "Tuesday",
+        "fromTime": "03:25",
+        "toTime": "18:25",
+        "name": "dfghdfh",
+        "specialty": "fghdfh"
+      }
+    ]
+  },
+  {
+    "number": "5",
+    "schedule": [
+      {
+        "day": "Wednesday",
+        "fromTime": "03:16",
+        "toTime": "15:16",
+        "name": "fdgdfgfdg",
+        "specialty": "dfgdfgdfg"
+      }
+    ]
+  },
+  {
+    "number": "6",
     "schedule": []
+  },
+  {
+    "number": "4",
+    "schedule": [
+      {
+        "day": "Tuesday",
+        "fromTime": "12:00",
+        "toTime": "13:00",
+        "name": "cvbhs",
+        "specialty": "ghgfhg"
+      }
+    ]
+  },
+  {
+    "number": "7",
+    "schedule": [
+      {
+        "day": "Monday",
+        "fromTime": "03:04",
+        "toTime": "20:04",
+        "name": "Slava Freidinzon",
+        "specialty": "Brain Surgeon"
+      },
+      {
+        "day": "Tuesday",
+        "fromTime": "03:04",
+        "toTime": "20:04",
+        "name": "Slava Freidinzon",
+        "specialty": "Brain Surgeon"
+      }
+    ]
   }
 ]

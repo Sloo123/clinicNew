@@ -1,17 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import EditSchedulePopup from './EditSchedulePopup';
+import Login from './Login';
 
-const ROOMS = 10;
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const ROOMS = 17;
+const DAYS = ['sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const HOURS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 
 const ClinicManagementSystem = () => {
   const [doctors, setDoctors] = useState([]);
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
   const [savedDoctors, setSavedDoctors] = useState([]);
   const [newDoctor, setNewDoctor] = useState({
     name: '',
     specialty: '',
     room: '',
-    day: '',
+    days: [], // Should be an empty array to start
     fromTime: '',
     toTime: ''
   });
@@ -23,15 +28,17 @@ const ClinicManagementSystem = () => {
   const [showDoctorManagement, setShowDoctorManagement] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [editingDoctorId, setEditingDoctorId] = useState(null);
-
   const toggleDoctorManagement = () => {
     setShowDoctorManagement(!showDoctorManagement);
   };
-  
   const handleEditDoctor = (doctor) => {
-    setEditingDoctorId(doctor.id);
-    setNewDoctor({ name: doctor.name, specialty: doctor.specialty });
-  };
+    if (doctor && doctor.id) {
+        setEditingDoctorId(doctor.id);
+        setNewDoctor({id: doctor.id, name: doctor.name, specialty: doctor.specialty });
+    } else {
+        console.error('Invalid doctor object:', doctor);
+    }
+};
   
   const handleConfirmEdit = async (doctorId) => {
     const doctorToUpdate = savedDoctors.find(d => d.id === doctorId);
@@ -122,9 +129,19 @@ const ClinicManagementSystem = () => {
   };
 
   useEffect(() => {
-    fetchSavedDoctors();
-    fetchAndSetAppointments();
+    // Check if user is logged in (e.g., by checking for a token in localStorage)
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      setIsLoggedIn(true);
+    }
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchSavedDoctors();
+      fetchAndSetAppointments();
+    }
+  }, [isLoggedIn]);
   
   const fetchAndSetAppointments = async () => {
     const roomSchedules = await fetchRoomSchedules();
@@ -172,68 +189,116 @@ const ClinicManagementSystem = () => {
     }
   };
 
-  const addDoctor = async () => {
-    console.log('Validating doctor fields:', newDoctor);
   
-    if (!newDoctor.name || !newDoctor.specialty || !newDoctor.room || !newDoctor.day || !newDoctor.fromTime || !newDoctor.toTime) {
-      console.log('Validation failed. Empty fields detected.');
-      setAlertMessage('Please fill in all fields.');
+  const addDoctor = async () => {
+    console.log('Attempting to add doctor with data:', newDoctor);
+  
+    // Detailed validation checks with logging
+    const validationChecks = [
+      { field: 'name', valid: newDoctor.name && newDoctor.name.trim() !== '' },
+      { field: 'specialty', valid: newDoctor.specialty && newDoctor.specialty.trim() !== '' },
+      { field: 'room', valid: newDoctor.room !== '' },
+      { field: 'days', valid: Array.isArray(newDoctor.days) && newDoctor.days.length > 0 },
+      { field: 'fromTime', valid: newDoctor.fromTime !== '' },
+      { field: 'toTime', valid: newDoctor.toTime !== '' }
+    ];
+
+    const failedChecks = validationChecks.filter(check => !check.valid);
+    
+    if (failedChecks.length > 0) {
+      console.log('Validation failed. Failed checks:', failedChecks);
+      const missingFields = failedChecks.map(check => check.field).join(', ');
+      setAlertMessage(`Please fill in all required fields: ${missingFields}`);
       setShowAlert(true);
       return;
     }
   
     if (newDoctor.fromTime >= newDoctor.toTime) {
+      console.log('Time validation failed:', newDoctor.fromTime, newDoctor.toTime);
       setAlertMessage('End time must be after start time.');
       setShowAlert(true);
       return;
     }
   
-    // Check for conflicts in the specific room
-    const conflictingAppointment = doctors.find(d => 
-      d.room === newDoctor.room && 
-      d.day === newDoctor.day &&
-      ((newDoctor.fromTime >= d.fromTime && newDoctor.fromTime < d.toTime) ||
-       (newDoctor.toTime > d.fromTime && newDoctor.toTime <= d.toTime) ||
-       (newDoctor.fromTime <= d.fromTime && newDoctor.toTime >= d.toTime))
-    );
-  
-    if (conflictingAppointment) {
-      setAlertMessage('Cannot add doctor. The selected slot overlaps with an existing appointment.');
-      setShowAlert(true);
-      return;
-    }
-  
-    const doctorToAdd = { ...newDoctor, id: Date.now() };
-  
     try {
-      const { response, data } = await updateRoomSchedule(newDoctor.room, newDoctor.day, newDoctor.fromTime, newDoctor.toTime, {
-        name: newDoctor.name,
-        specialty: newDoctor.specialty
-      });
+      // Check for conflicts
+      for (const day of newDoctor.days) {
+        const conflictingAppointment = doctors.find(d => 
+          d.room === newDoctor.room && 
+          d.day === day &&
+          ((newDoctor.fromTime >= d.fromTime && newDoctor.fromTime < d.toTime) ||
+           (newDoctor.toTime > d.fromTime && newDoctor.toTime <= d.toTime) ||
+           (newDoctor.fromTime <= d.fromTime && newDoctor.toTime >= d.toTime))
+        );
   
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update room schedule');
+        if (conflictingAppointment) {
+          console.log('Conflict detected:', conflictingAppointment);
+          setAlertMessage(`Cannot add doctor. The selected slot overlaps with an existing appointment on ${day}.`);
+          setShowAlert(true);
+          return;
+        }
       }
   
-      setDoctors(prevDoctors => [...prevDoctors, doctorToAdd]);
+      // Proceed with adding the doctor
+      for (const day of newDoctor.days) {
+        console.log(`Processing day: ${day}`);
+        const doctorEntry = {
+          ...newDoctor,
+          id: `${Date.now()}-${day}`,
+          day
+        };
+        console.log('Sending to server:', doctorEntry);
+  
+        const payload = {
+          room: doctorEntry.room,
+          day: doctorEntry.day,
+          fromTime: doctorEntry.fromTime,
+          toTime: doctorEntry.toTime,
+          doctor: {
+            name: doctorEntry.name,
+            specialty: doctorEntry.specialty
+          }
+        };
+        console.log('Payload for updateRoomSchedule:', payload);
+  
+        const { response, data } = await updateRoomSchedule(payload);
+  
+        if (!response.ok) {
+          throw new Error(data.error || `Failed to update room schedule: ${response.statusText}`);
+        }
+  
+        console.log(`Successfully updated schedule for ${day}:`, data);
+        setDoctors(prevDoctors => [...prevDoctors, doctorEntry]);
+      }
   
       if (!savedDoctors.some(d => d.name === newDoctor.name && d.specialty === newDoctor.specialty)) {
-        await fetch('/api/doctors', {
+        console.log('Saving new doctor to /api/doctors');
+        const saveResponse = await fetch('/api/doctors', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ name: newDoctor.name, specialty: newDoctor.specialty }),
         });
+        
+        if (!saveResponse.ok) {
+          throw new Error(`Failed to save doctor: ${saveResponse.statusText}`);
+        }
+        
+        console.log('New doctor saved successfully');
         await fetchSavedDoctors();
       }
   
-      // Refresh appointments
       await fetchAndSetAppointments();
   
-      setNewDoctor({ name: '', specialty: '', room: '', day: '', fromTime: '', toTime: '' });
+      // Reset the form
+      setNewDoctor({ name: '', specialty: '', room: '', days: [], fromTime: '', toTime: '' });
       setSuggestions([]);
       setIsCustomTime(false);
+      
+      console.log('Doctor added successfully');
+      setAlertMessage('Doctor added successfully!');
+      setShowAlert(true);
     } catch (error) {
       console.error('Error saving doctor:', error);
       setAlertMessage(`Error saving doctor: ${error.message}`);
@@ -241,55 +306,91 @@ const ClinicManagementSystem = () => {
     }
   };
 
+ 
+  
+  
+  
+
   const removeDoctor = async (id) => {
     const doctorToRemove = doctors.find(d => d.id === id);
     if (doctorToRemove) {
       try {
-        const { response, data } = await updateRoomSchedule(doctorToRemove.room, doctorToRemove.day, doctorToRemove.fromTime, doctorToRemove.toTime, null);
+        console.log('Removing doctor:', doctorToRemove);
+        const payload = {
+          room: doctorToRemove.room,
+          day: doctorToRemove.day,
+          fromTime: doctorToRemove.fromTime,
+          toTime: doctorToRemove.toTime,
+          doctor: null // Indicate that we're removing the doctor
+        };
+        const { response, data } = await updateRoomSchedule(payload);
+
         if (!response.ok) {
-          if (response.status === 404) {
-            // If the appointment was not found, we should still remove it from the local state
-            setDoctors(doctors.filter(doctor => doctor.id !== id));
-            setAlertMessage('Appointment not found on the server, but removed from local view.');
-            setShowAlert(true);
-          } else {
-            throw new Error(`Server responded with ${response.status}: ${data.error || 'Unknown error'}`);
-          }
-        } else {
-          setDoctors(doctors.filter(doctor => doctor.id !== id));
-          console.log('Appointment removed successfully');
+          throw new Error(data.error || `Failed to remove doctor: ${response.statusText}`);
         }
+
+        setDoctors(doctors.filter(doctor => doctor.id !== id));
+        console.log('Doctor removed successfully');
+        setAlertMessage('Doctor removed successfully!');
+        setShowAlert(true);
         await fetchAndSetAppointments();
       } catch (error) {
         console.error('Error removing doctor:', error);
-        setAlertMessage(`Error removing appointment: ${error.message}`);
+        setAlertMessage(`Error removing doctor: ${error.message}`);
         setShowAlert(true);
       }
     }
   };
 
-  const updateRoomSchedule = async (room, day, fromTime, toTime, doctor) => {
+  const updateRoomSchedule = async (payload) => {
     try {
+      console.log('Sending payload to /api/rooms:', payload);
       const response = await fetch('/api/rooms', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ room: room.toString(), day, fromTime, toTime, doctor }),
+        body: JSON.stringify(payload),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Error updating room schedule:', data);
-        throw new Error(data.error || 'Failed to update room schedule');
+
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        data = await response.json();
+      } else {
+        // If the response is not JSON, get the text content
+        const text = await response.text();
+        console.error('Received non-JSON response:', text);
+        throw new Error('Received non-JSON response from server');
       }
-      console.log('Room schedule updated:', data);
+
+      if (!response.ok) {
+        console.error('Server responded with an error:', data);
+        throw new Error(data.error || `Failed to update room schedule: ${response.statusText}`);
+      }
+
+      console.log('Room schedule updated successfully:', data);
       return { response, data };
     } catch (error) {
       console.error('Error in updateRoomSchedule:', error);
       throw error;
     }
   };
-
+  const handleDayChange = (e, day) => {
+    const { checked } = e.target;
+    let updatedDays = [...newDoctor.days];
+    console.log(day, { checked});
+    if (checked) {
+      // Add day to the array
+      updatedDays.push(day);
+    } else {
+      // Remove day from the array
+      updatedDays = updatedDays.filter(d => d !== day);
+    }
+  
+    setNewDoctor({ ...newDoctor, days: updatedDays });
+  };
+  
   const handleInputChange = (e, field) => {
     const value = e.target.value;
     setNewDoctor({ ...newDoctor, [field]: value });
@@ -350,9 +451,48 @@ const ClinicManagementSystem = () => {
     console.log('Updating newDoctor with suggestion');
   };
 
+  const handleLogin = (token) => {
+    localStorage.setItem('authToken', token);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsLoggedIn(false);
+  };
+
+  const handleEditSchedule = (schedule) => {
+    setEditingSchedule(schedule);
+  };
+
+  const handleSaveSchedule = async (editedSchedule) => {
+    try {
+      const response = await updateRoomSchedule(editedSchedule);
+      if (response.ok) {
+        setDoctors(doctors.map(doctor => 
+          doctor.id === editedSchedule.id ? editedSchedule : doctor
+        ));
+        setEditingSchedule(null);
+        setAlertMessage('Schedule updated successfully!');
+        setShowAlert(true);
+      } else {
+        throw new Error('Failed to update schedule');
+      }
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      setAlertMessage('Error updating schedule. Please try again.');
+      setShowAlert(true);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="cms-container">
       <h1 className="cms-header">Clinic Management System</h1>
+      <button className="cms-button" onClick={handleLogout}>Logout</button>
       
       <button className="cms-button" onClick={toggleDoctorManagement}>
         {showDoctorManagement ? 'Hide Doctor Management' : 'Manage Doctors'}
@@ -363,41 +503,41 @@ const ClinicManagementSystem = () => {
           <div className="cms-sidebar">
             <h2>Doctors List</h2>
             <ul className="cms-doctor-list">
-            {savedDoctors.map((doctor) => (
-              <li key={doctor.id} className="cms-doctor-item">
-                <div className="cms-doctor-item-content">
-                  {editingDoctorId === doctor.id ? (
-                    <>
-                      <div className="cms-doctor-info">
-                        <input
-                          className="cms-edit-input"
-                          value={newDoctor.name}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                        />
-                        <input
-                          className="cms-edit-input"
-                          value={newDoctor.specialty}
-                          onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
-                        />
-                      </div>
-                      <div className="cms-doctor-actions">
-                        <button onClick={() => handleConfirmEdit(doctor.id)} className="cms-icon-button">✅</button>
-                        <button onClick={handleCancelEdit} className="cms-icon-button">❌</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="cms-doctor-info">
-                        <span>{doctor.name} - {doctor.specialty}</span>
-                      </div>
-                      <div className="cms-doctor-actions">
-                        <button onClick={() => handleEditDoctor(doctor)} className="cms-icon-button">✏️</button>
-                        <button onClick={() => handleRemoveDoctor(doctor)} className="cms-icon-button">🗑️</button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </li>
+             {savedDoctors.map((doctor) => (
+                <li key={doctor.id} className="cms-doctor-item">
+                    <div className="cms-doctor-item-content">
+                        {editingDoctorId === doctor.id ? (
+                            <>
+                                <div className="cms-doctor-info">
+                                    <input
+                                        className="cms-edit-input"
+                                        value={newDoctor.name}
+                                        onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
+                                    />
+                                    <input
+                                        className="cms-edit-input"
+                                        value={newDoctor.specialty}
+                                        onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
+                                    />
+                                </div>
+                                <div className="cms-doctor-actions">
+                                    <button onClick={() => handleConfirmEdit(doctor.id)} className="cms-icon-button">✅</button>
+                                    <button onClick={handleCancelEdit} className="cms-icon-button">❌</button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="cms-doctor-info">
+                                    <span>{doctor.name} - {doctor.specialty}</span>
+                                </div>
+                                <div className="cms-doctor-actions">
+                                    <button onClick={() => handleEditDoctor(doctor)} className="cms-icon-button">✏️</button>
+                                    <button onClick={() => handleRemoveDoctor(doctor)} className="cms-icon-button">🗑️</button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </li>
             ))}
           </ul>
           </div>
@@ -473,18 +613,21 @@ const ClinicManagementSystem = () => {
                   </select>
                 </div>
                 <div className="cms-form-field">
-                  <label htmlFor="day">Day</label>
-                  <select
-                    id="day"
-                    className="cms-input"
-                    value={newDoctor.day}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, day: e.target.value })}
-                  >
-                    <option value="">Select Day</option>
-                    {DAYS.map((day) => (
-                      <option key={day} value={day}>{day}</option>
-                    ))}
-                  </select>
+                <label htmlFor="day">Days</label>
+                <div className="cms-checkbox-group">
+                
+    {DAYS.map((day) => (
+      <label key={day} style={{ marginRight: '10px' }}>
+        <input
+          type="checkbox"
+          value={day}
+          checked={newDoctor.days.includes(day)}
+          onChange={(e) => handleDayChange(e, day)}
+        />
+        {day}
+      </label>
+    ))}
+  </div>
                 </div>
               </div>
               <div className="cms-form-row">
@@ -526,35 +669,37 @@ const ClinicManagementSystem = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...Array(ROOMS)].map((_, roomIndex) => (
-                    <tr key={roomIndex}>
-                      <td className="cms-schedule-cell">Room {roomIndex + 1}</td>
-                      {DAYS.map(day => (
-                        <td key={day} className="cms-schedule-cell">
-                          {doctors
-                            .filter(d => d.room === String(roomIndex + 1) && d.day === day)
-                            .sort((a, b) => a.fromTime.localeCompare(b.fromTime))
-                            .map(doctor => (
-                              <div key={doctor.id} className="cms-time-slot cms-occupied-slot">
-                                <span>{doctor.fromTime} - {doctor.toTime}: {doctor.name} ({doctor.specialty})</span>
-                                <button
-                                  className="cms-remove-button"
-                                  onClick={() => removeDoctor(doctor.id)}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))
-                          }
-                        </td>
-                      ))}
-                    </tr>
+              {[...Array(ROOMS)].map((_, roomIndex) => (
+                <tr key={roomIndex}>
+                  <td className="cms-schedule-cell">Room {roomIndex + 1}</td>
+                  {DAYS.map(day => (
+                    <td key={day} className="cms-schedule-cell">
+                      {doctors
+                        .filter(d => d.room === String(roomIndex + 1) && d.day === day)
+                        .sort((a, b) => a.fromTime.localeCompare(b.fromTime))
+                        .map(doctor => (
+                          <div key={doctor.id} className="cms-time-slot cms-occupied-slot">
+                            <span>{doctor.fromTime} - {doctor.toTime}: {doctor.name} ({doctor.specialty})</span>
+                            <button onClick={() => handleEditSchedule(doctor)} className="cms-icon-button">✏️</button>
+                            <button onClick={() => removeDoctor(doctor.id)} className="cms-icon-button">🗑️</button>
+                          </div>
+                        ))
+                      }
+                    </td>
                   ))}
-                </tbody>
+                </tr>
+              ))}
+            </tbody>
               </table>
             </div>
           </div>
-  
+          {editingSchedule && (
+        <EditSchedulePopup
+          schedule={editingSchedule}
+          onSave={handleSaveSchedule}
+          onCancel={() => setEditingSchedule(null)}
+        />
+        )}
           {editingDoctor && (
             <div className="cms-edit-form">
               <h3>Edit Doctor</h3>
