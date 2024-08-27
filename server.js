@@ -2,7 +2,7 @@ const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 const cors = require('cors');
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = ['sunday','Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const app = express();
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid'); 
@@ -250,8 +250,8 @@ async function writeRoomsData(rooms) {
 // Endpoint to update room schedule
 app.post('/api/rooms', async (req, res) => {
   try {
-    const { room, day, fromTime, toTime, doctor } = req.body;
-    console.log('Received request:', { room, day, fromTime, toTime, doctor });
+    const { room, day, fromTime, toTime, doctor, originalFromTime, originalToTime } = req.body;
+    console.log('Received request:', { room, day, fromTime, toTime, doctor, originalFromTime, originalToTime });
 
     // Validate required fields
     if (!room || !day || !fromTime || !toTime) {
@@ -270,26 +270,37 @@ app.post('/api/rooms', async (req, res) => {
     if (doctor) {
       // Adding or updating a doctor
       const newAppointment = { day, fromTime, toTime, ...doctor };
-      const existingIndex = updatedRoom.schedule.findIndex(s => 
-        s.day === day && s.fromTime === fromTime && s.toTime === toTime
+      let existingIndex = -1;
+
+      if (originalFromTime && originalToTime) {
+        // We're updating an existing appointment
+        existingIndex = updatedRoom.schedule.findIndex(s => 
+          s.day === day && s.fromTime === originalFromTime && s.toTime === originalToTime
+        );
+      } else {
+        // Check if we're adding a new appointment at the same time slot
+        existingIndex = updatedRoom.schedule.findIndex(s => 
+          s.day === day && s.fromTime === fromTime && s.toTime === toTime
+        );
+      }
+
+      // Check for time conflicts, excluding the appointment being updated
+      const hasConflict = updatedRoom.schedule.some((s, index) => 
+        index !== existingIndex &&
+        s.day === day && 
+        ((fromTime >= s.fromTime && fromTime < s.toTime) || 
+         (toTime > s.fromTime && toTime <= s.toTime) ||
+         (fromTime <= s.fromTime && toTime >= s.toTime))
       );
 
-      if (existingIndex === -1) {
-        // Check for time conflicts
-        const hasConflict = updatedRoom.schedule.some(s => 
-          s.day === day && 
-          ((fromTime >= s.fromTime && fromTime < s.toTime) || 
-           (toTime > s.fromTime && toTime <= s.toTime) ||
-           (fromTime <= s.fromTime && toTime >= s.toTime))
-        );
+      if (hasConflict) {
+        return res.status(409).json({ error: 'Time conflict with existing appointment' });
+      }
 
-        if (hasConflict) {
-          return res.status(409).json({ error: 'Time conflict with existing appointment' });
-        }
-
-        updatedRoom.schedule.push(newAppointment);
-      } else {
+      if (existingIndex !== -1) {
         updatedRoom.schedule[existingIndex] = newAppointment;
+      } else {
+        updatedRoom.schedule.push(newAppointment);
       }
     } else {
       // Removing a doctor

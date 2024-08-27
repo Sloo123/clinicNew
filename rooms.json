@@ -45,32 +45,169 @@
   },
   {
     "number": "4",
+    "schedule": []
+  },
+  {
+    "number": "7",
+    "schedule": []
+  },
+  {
+    "number": "9",
     "schedule": [
       {
+        "day": "Friday",
+        "fromTime": "10:04",
+        "toTime": "12:04",
+        "name": "dfgfdgfdg",
+        "specialty": "dfgfdgfd"
+      },
+      {
+        "day": "Monday",
+        "fromTime": "10:04",
+        "toTime": "12:04",
+        "name": "dfgfdgfdg",
+        "specialty": "dfgfdgfd"
+      },
+      {
+        "day": "Monday",
+        "fromTime": "14:05",
+        "toTime": "15:00",
+        "name": "defgfdgh",
+        "specialty": "dfghdfghdg"
+      },
+      {
+        "day": "sunday",
+        "fromTime": "12:04",
+        "toTime": "14:04",
+        "name": "dfgfdgfdg",
+        "specialty": "dfgfdgfd"
+      },
+      {
+        "day": "sunday",
+        "fromTime": "14:05",
+        "toTime": "15:00",
+        "name": "defgfdgh",
+        "specialty": "dfghdfghdg"
+      },
+      {
+        "day": "Thursday",
+        "fromTime": "10:04",
+        "toTime": "12:04",
+        "name": "dfgfdgfdg",
+        "specialty": "dfgfdgfd"
+      },
+      {
         "day": "Tuesday",
-        "fromTime": "12:00",
-        "toTime": "13:00",
-        "name": "cvbhs",
-        "specialty": "ghgfhg"
+        "fromTime": "14:05",
+        "toTime": "15:00",
+        "name": "defgfdgh",
+        "specialty": "dfghdfghdg"
+      },
+      {
+        "day": "Wednesday",
+        "fromTime": "10:04",
+        "toTime": "12:04",
+        "name": "dfgfdgfdg",
+        "specialty": "dfgfdgfd"
       }
     ]
   },
   {
-    "number": "7",
+    "number": "8",
     "schedule": [
       {
-        "day": "Monday",
-        "fromTime": "03:04",
-        "toTime": "20:04",
+        "day": "sunday",
+        "fromTime": "21:00",
+        "toTime": "23:00",
         "name": "Slava Freidinzon",
         "specialty": "Brain Surgeon"
       },
       {
         "day": "Tuesday",
-        "fromTime": "03:04",
-        "toTime": "20:04",
+        "fromTime": "21:00",
+        "toTime": "23:00",
         "name": "Slava Freidinzon",
         "specialty": "Brain Surgeon"
+      },
+      {
+        "day": "Wednesday",
+        "fromTime": "21:00",
+        "toTime": "23:00",
+        "name": "Slava Freidinzon",
+        "specialty": "Brain Surgeon"
+      }
+    ]
+  },
+  {
+    "number": "12",
+    "schedule": [
+      {
+        "day": "Monday",
+        "fromTime": "00:29",
+        "toTime": "12:00",
+        "name": "fhgjghfjghj",
+        "specialty": "gfhfgjhgfj"
+      },
+      {
+        "day": "sunday",
+        "fromTime": "00:29",
+        "toTime": "12:00",
+        "name": "fhgjghfjghj",
+        "specialty": "gfhfgjhgfj"
+      },
+      {
+        "day": "Thursday",
+        "fromTime": "00:29",
+        "toTime": "12:00",
+        "name": "fhgjghfjghj",
+        "specialty": "gfhfgjhgfj"
+      },
+      {
+        "day": "Tuesday",
+        "fromTime": "00:29",
+        "toTime": "12:00",
+        "name": "fhgjghfjghj",
+        "specialty": "gfhfgjhgfj"
+      },
+      {
+        "day": "Wednesday",
+        "fromTime": "00:29",
+        "toTime": "12:00",
+        "name": "fhgjghfjghj",
+        "specialty": "gfhfgjhgfj"
+      }
+    ]
+  },
+  {
+    "number": "10",
+    "schedule": [
+      {
+        "day": "Monday",
+        "fromTime": "08:00",
+        "toTime": "15:00",
+        "name": "סלבה פריידינזון",
+        "specialty": "מנתח מוח "
+      },
+      {
+        "day": "sunday",
+        "fromTime": "08:00",
+        "toTime": "15:00",
+        "name": "סלבה פריידינזון",
+        "specialty": "מנתח מוח "
+      },
+      {
+        "day": "Tuesday",
+        "fromTime": "08:00",
+        "toTime": "15:00",
+        "name": "סלבה פריידינזון",
+        "specialty": "מנתח מוח "
+      },
+      {
+        "day": "Wednesday",
+        "fromTime": "08:00",
+        "toTime": "15:00",
+        "name": "סלבה פריידינזון",
+        "specialty": "מנתח מוח "
       }
     ]
   }

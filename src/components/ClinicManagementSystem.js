@@ -4,7 +4,6 @@ import Login from './Login';
 
 const ROOMS = 17;
 const DAYS = ['sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-const HOURS = ['9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
 
 const ClinicManagementSystem = () => {
   const [doctors, setDoctors] = useState([]);
@@ -20,25 +19,40 @@ const ClinicManagementSystem = () => {
     fromTime: '',
     toTime: ''
   });
+  
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [suggestions, setSuggestions] = useState([]);
-  const [isCustomTime, setIsCustomTime] = useState(false);
   const [debounceTimer, setDebounceTimer] = useState(null);
   const [showDoctorManagement, setShowDoctorManagement] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [editingDoctorId, setEditingDoctorId] = useState(null);
+  const resetNewDoctor = () => {
+    setNewDoctor({
+      name: '',
+      specialty: '',
+      room: '',
+      days: [],
+      fromTime: '',
+      toTime: ''
+    });
+  };
   const toggleDoctorManagement = () => {
     setShowDoctorManagement(!showDoctorManagement);
   };
-  const handleEditDoctor = (doctor) => {
+const handleEditDoctor = (doctor) => {
+  console.log(doctor);
     if (doctor && doctor.id) {
-        setEditingDoctorId(doctor.id);
-        setNewDoctor({id: doctor.id, name: doctor.name, specialty: doctor.specialty });
+      setEditingDoctorId(doctor.id);
+      setNewDoctor({
+        id: doctor.id,
+        name: doctor.name,
+        specialty: doctor.specialty
+      });
     } else {
-        console.error('Invalid doctor object:', doctor);
+      console.error('Invalid doctor object:', doctor);
     }
-};
+  };
   
   const handleConfirmEdit = async (doctorId) => {
     const doctorToUpdate = savedDoctors.find(d => d.id === doctorId);
@@ -292,11 +306,9 @@ const ClinicManagementSystem = () => {
       await fetchAndSetAppointments();
   
       // Reset the form
-      setNewDoctor({ name: '', specialty: '', room: '', days: [], fromTime: '', toTime: '' });
+      resetNewDoctor();
       setSuggestions([]);
-      setIsCustomTime(false);
       
-      console.log('Doctor added successfully');
       setAlertMessage('Doctor added successfully!');
       setShowAlert(true);
     } catch (error) {
@@ -353,16 +365,7 @@ const ClinicManagementSystem = () => {
         body: JSON.stringify(payload),
       });
 
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.indexOf("application/json") !== -1) {
-        data = await response.json();
-      } else {
-        // If the response is not JSON, get the text content
-        const text = await response.text();
-        console.error('Received non-JSON response:', text);
-        throw new Error('Received non-JSON response from server');
-      }
+      const data = await response.json();
 
       if (!response.ok) {
         console.error('Server responded with an error:', data);
@@ -378,22 +381,16 @@ const ClinicManagementSystem = () => {
   };
   const handleDayChange = (e, day) => {
     const { checked } = e.target;
-    let updatedDays = [...newDoctor.days];
-    console.log(day, { checked});
-    if (checked) {
-      // Add day to the array
-      updatedDays.push(day);
-    } else {
-      // Remove day from the array
-      updatedDays = updatedDays.filter(d => d !== day);
-    }
-  
-    setNewDoctor({ ...newDoctor, days: updatedDays });
+    setNewDoctor(prevDoctor => {
+      const updatedDays = checked
+        ? [...(prevDoctor.days || []), day]
+        : (prevDoctor.days || []).filter(d => d !== day);
+      return { ...prevDoctor, days: updatedDays };
+    });
   };
-  
   const handleInputChange = (e, field) => {
     const value = e.target.value;
-    setNewDoctor({ ...newDoctor, [field]: value });
+    setNewDoctor(prevDoctor => ({ ...prevDoctor, [field]: value }));
 
     console.log(`Input changed for ${field}:`, value);
 
@@ -467,24 +464,47 @@ const ClinicManagementSystem = () => {
 
   const handleSaveSchedule = async (editedSchedule) => {
     try {
-      const response = await updateRoomSchedule(editedSchedule);
+      console.log('Saving edited schedule:', editedSchedule);
+      
+      const existingAppointment = doctors.find(doc => doc.id === editedSchedule.id);
+
+      const payload = {
+        room: editedSchedule.room,
+        day: editedSchedule.day,
+        fromTime: editedSchedule.fromTime,
+        toTime: editedSchedule.toTime,
+        doctor: {
+          name: editedSchedule.name,
+          specialty: editedSchedule.specialty
+        }
+      };
+
+      if (existingAppointment) {
+        // If it's an existing appointment, include the original times
+        payload.originalFromTime = existingAppointment.fromTime;
+        payload.originalToTime = existingAppointment.toTime;
+      }
+
+      const { response, data } = await updateRoomSchedule(payload);
+
       if (response.ok) {
-        setDoctors(doctors.map(doctor => 
-          doctor.id === editedSchedule.id ? editedSchedule : doctor
-        ));
+        setDoctors(prevDoctors => 
+          prevDoctors.map(doctor => 
+            doctor.id === editedSchedule.id ? editedSchedule : doctor
+          )
+        );
         setEditingSchedule(null);
         setAlertMessage('Schedule updated successfully!');
         setShowAlert(true);
       } else {
-        throw new Error('Failed to update schedule');
+        throw new Error(data.error || 'Failed to update schedule');
       }
     } catch (error) {
       console.error('Error updating schedule:', error);
-      setAlertMessage('Error updating schedule. Please try again.');
+      setAlertMessage(`Error updating schedule: ${error.message}`);
       setShowAlert(true);
     }
   };
-
   if (!isLoggedIn) {
     return <Login onLogin={handleLogin} />;
   }
@@ -499,49 +519,49 @@ const ClinicManagementSystem = () => {
       </button>
   
       <div className="cms-layout">
-        {showDoctorManagement && (
-          <div className="cms-sidebar">
-            <h2>Doctors List</h2>
-            <ul className="cms-doctor-list">
-             {savedDoctors.map((doctor) => (
-                <li key={doctor.id} className="cms-doctor-item">
-                    <div className="cms-doctor-item-content">
-                        {editingDoctorId === doctor.id ? (
-                            <>
-                                <div className="cms-doctor-info">
-                                    <input
-                                        className="cms-edit-input"
-                                        value={newDoctor.name}
-                                        onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                                    />
-                                    <input
-                                        className="cms-edit-input"
-                                        value={newDoctor.specialty}
-                                        onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
-                                    />
-                                </div>
-                                <div className="cms-doctor-actions">
-                                    <button onClick={() => handleConfirmEdit(doctor.id)} className="cms-icon-button">✅</button>
-                                    <button onClick={handleCancelEdit} className="cms-icon-button">❌</button>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="cms-doctor-info">
-                                    <span>{doctor.name} - {doctor.specialty}</span>
-                                </div>
-                                <div className="cms-doctor-actions">
-                                    <button onClick={() => handleEditDoctor(doctor)} className="cms-icon-button">✏️</button>
-                                    <button onClick={() => handleRemoveDoctor(doctor)} className="cms-icon-button">🗑️</button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </li>
+      {showDoctorManagement && (
+        <div className="cms-sidebar">
+          <h2>Doctors List</h2>
+          <ul className="cms-doctor-list">
+            {savedDoctors.map((doctor) => (
+              <li key={doctor.id || doctor.name} className="cms-doctor-item">
+                <div className="cms-doctor-item-content">
+                  {editingDoctorId === (doctor.id || doctor.name) ? (
+                    <>
+                      <div className="cms-doctor-info">
+                        <input
+                          className="cms-edit-input"
+                          value={newDoctor.name}
+                          onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
+                        />
+                        <input
+                          className="cms-edit-input"
+                          value={newDoctor.specialty}
+                          onChange={(e) => setNewDoctor({ ...newDoctor, specialty: e.target.value })}
+                        />
+                      </div>
+                      <div className="cms-doctor-actions">
+                        <button onClick={() => handleConfirmEdit(doctor.id || doctor.name)} className="cms-icon-button">✅</button>
+                        <button onClick={handleCancelEdit} className="cms-icon-button">❌</button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="cms-doctor-info">
+                        <span>{doctor.name} - {doctor.specialty}</span>
+                      </div>
+                      <div className="cms-doctor-actions">
+                        <button onClick={() => handleEditDoctor(doctor)} className="cms-icon-button">✏️</button>
+                        <button onClick={() => handleRemoveDoctor(doctor)} className="cms-icon-button">🗑️</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </li>
             ))}
           </ul>
-          </div>
-        )}
+        </div>
+      )}
         
         <div className="cms-main-content">
           <div className="cms-section">
@@ -615,20 +635,19 @@ const ClinicManagementSystem = () => {
                 <div className="cms-form-field">
                 <label htmlFor="day">Days</label>
                 <div className="cms-checkbox-group">
-                
-    {DAYS.map((day) => (
-      <label key={day} style={{ marginRight: '10px' }}>
-        <input
-          type="checkbox"
-          value={day}
-          checked={newDoctor.days.includes(day)}
-          onChange={(e) => handleDayChange(e, day)}
-        />
-        {day}
-      </label>
-    ))}
-  </div>
+                  {DAYS.map((day) => (
+                    <label key={day} style={{ marginRight: '10px' }}>
+                      <input
+                        type="checkbox"
+                        value={day}
+                        checked={newDoctor.days && newDoctor.days.includes(day)}
+                        onChange={(e) => handleDayChange(e, day)}
+                      />
+                      {day}
+                    </label>
+                  ))}
                 </div>
+              </div>
               </div>
               <div className="cms-form-row">
                 <div className="cms-form-field">
